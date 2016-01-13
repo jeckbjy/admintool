@@ -7,12 +7,12 @@
 
 - Demo：cmd.cfg:其中真实的命令都改为了xxxx替代
 <pre><code>
-#$代表变量，@代表需要base64编码的变量
-#cmd要求：group,名字，cmd，$uid, $args,uid如果没写则自动添加
+ # $代表变量，@代表需要base64编码的变量
+ # cmd要求：group,名字，cmd，$uid, $args,uid如果没写则自动添加
 uids = u72620561171318476,u72620561171318477
 host = 192.168.2.169, 192.168.4.105
 port = 2020
-#cmd格式:group,showname,cmd,args,无需填写uid,默认会自动添加
+ # cmd格式:group,showname,cmd,args,无需填写uid,默认会自动添加
 cmd = 玩家, 添加货币, 	xxxx,$type=1[options=金币:1|钻石:2|万能图纸:3|高级万能图纸:4|原油:5],$count=1000
 cmd = 玩家, 添加物品, 	xxxx, $itemid, $num
 cmd = 玩家, 删除物品,	xxxx, #itemid, $num
