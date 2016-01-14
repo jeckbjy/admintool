@@ -59,7 +59,37 @@ namespace AdminTool
             }
             set
             {
-                this.dataBox.Text = value;
+                // 设置selected
+                if(dataBox.DropDownStyle != ComboBoxStyle.Simple)
+                {
+                    AdminOption finded = null;
+                    // 查找
+                    for(int i = 0; i < dataBox.Items.Count; ++i)
+                    {
+                        object obj = dataBox.Items[i];
+                        if (obj.GetType() != typeof(AdminOption))
+                            break;
+                        AdminOption opt = obj as AdminOption;
+                        if(opt.Data == value)
+                        {
+                            finded = opt;
+                            break;
+                        }
+                    }
+                    if(finded != null)
+                    {
+                        dataBox.SelectedItem = finded;
+                        dataBox.Text = finded.Name;
+                    }
+                    else
+                    {
+                        dataBox.Text = value;
+                    }
+                }
+                else
+                {
+                    dataBox.Text = value;
+                }
             }
         }
 

@@ -29,13 +29,14 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(AdminForm));
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.fileFToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.loadLToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStrip1 = new System.Windows.Forms.ToolStrip();
-            this.toolStripButton1 = new System.Windows.Forms.ToolStripButton();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
+            this.adminTreeView = new System.Windows.Forms.TreeView();
+            this.adminTreeMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.expandMenu = new System.Windows.Forms.ToolStripMenuItem();
+            this.collapseMenu = new System.Windows.Forms.ToolStripMenuItem();
             this.splitContainer2 = new System.Windows.Forms.SplitContainer();
             this.splitContainer3 = new System.Windows.Forms.SplitContainer();
             this.dynCmdPanel = new System.Windows.Forms.Panel();
@@ -56,20 +57,20 @@
             this.portTbx = new System.Windows.Forms.TextBox();
             this.connectBtn = new System.Windows.Forms.Button();
             this.lastAdminLbx = new System.Windows.Forms.ListBox();
+            this.lastMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.updateMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.resetMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.deleteMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.logRtb = new System.Windows.Forms.RichTextBox();
             this.widgetTip = new System.Windows.Forms.ToolTip(this.components);
             this.statusBar = new System.Windows.Forms.StatusStrip();
             this.statusLabel = new System.Windows.Forms.ToolStripStatusLabel();
-            this.adminTreeView = new System.Windows.Forms.TreeView();
-            this.adminBar = new System.Windows.Forms.Panel();
-            this.expandBtn = new System.Windows.Forms.Button();
-            this.collapseBtn = new System.Windows.Forms.Button();
             this.menuStrip1.SuspendLayout();
-            this.toolStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
             this.splitContainer1.SuspendLayout();
+            this.adminTreeMenuStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer2)).BeginInit();
             this.splitContainer2.Panel1.SuspendLayout();
             this.splitContainer2.Panel2.SuspendLayout();
@@ -82,8 +83,8 @@
             this.argsBox.SuspendLayout();
             this.cmdGroupBox.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.countNum)).BeginInit();
+            this.lastMenuStrip.SuspendLayout();
             this.statusBar.SuspendLayout();
-            this.adminBar.SuspendLayout();
             this.SuspendLayout();
             // 
             // menuStrip1
@@ -92,7 +93,7 @@
             this.fileFToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Size = new System.Drawing.Size(1018, 25);
+            this.menuStrip1.Size = new System.Drawing.Size(1007, 25);
             this.menuStrip1.TabIndex = 0;
             this.menuStrip1.Text = "menuStrip1";
             // 
@@ -110,44 +111,57 @@
             this.loadLToolStripMenuItem.Size = new System.Drawing.Size(119, 22);
             this.loadLToolStripMenuItem.Text = "Load(&L)";
             // 
-            // toolStrip1
-            // 
-            this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.toolStripButton1});
-            this.toolStrip1.Location = new System.Drawing.Point(0, 25);
-            this.toolStrip1.Name = "toolStrip1";
-            this.toolStrip1.Size = new System.Drawing.Size(1018, 25);
-            this.toolStrip1.TabIndex = 1;
-            this.toolStrip1.Text = "toolStrip1";
-            // 
-            // toolStripButton1
-            // 
-            this.toolStripButton1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.toolStripButton1.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButton1.Image")));
-            this.toolStripButton1.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.toolStripButton1.Name = "toolStripButton1";
-            this.toolStripButton1.Size = new System.Drawing.Size(23, 22);
-            this.toolStripButton1.Text = "LoadConfig";
-            // 
             // splitContainer1
             // 
             this.splitContainer1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.splitContainer1.Location = new System.Drawing.Point(0, 50);
+            this.splitContainer1.Location = new System.Drawing.Point(0, 25);
             this.splitContainer1.Name = "splitContainer1";
             // 
             // splitContainer1.Panel1
             // 
             this.splitContainer1.Panel1.Controls.Add(this.adminTreeView);
-            this.splitContainer1.Panel1.Controls.Add(this.adminBar);
             // 
             // splitContainer1.Panel2
             // 
             this.splitContainer1.Panel2.Controls.Add(this.splitContainer2);
-            this.splitContainer1.Size = new System.Drawing.Size(1018, 594);
-            this.splitContainer1.SplitterDistance = 302;
+            this.splitContainer1.Size = new System.Drawing.Size(1007, 619);
+            this.splitContainer1.SplitterDistance = 257;
             this.splitContainer1.SplitterWidth = 6;
             this.splitContainer1.TabIndex = 0;
             this.splitContainer1.TabStop = false;
+            // 
+            // adminTreeView
+            // 
+            this.adminTreeView.ContextMenuStrip = this.adminTreeMenuStrip;
+            this.adminTreeView.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.adminTreeView.HideSelection = false;
+            this.adminTreeView.Location = new System.Drawing.Point(0, 0);
+            this.adminTreeView.Name = "adminTreeView";
+            this.adminTreeView.Size = new System.Drawing.Size(257, 619);
+            this.adminTreeView.TabIndex = 1;
+            this.adminTreeView.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.adminTreeView_AfterSelect);
+            // 
+            // adminTreeMenuStrip
+            // 
+            this.adminTreeMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.expandMenu,
+            this.collapseMenu});
+            this.adminTreeMenuStrip.Name = "adminTreeMenuStrip";
+            this.adminTreeMenuStrip.Size = new System.Drawing.Size(101, 48);
+            // 
+            // expandMenu
+            // 
+            this.expandMenu.Name = "expandMenu";
+            this.expandMenu.Size = new System.Drawing.Size(100, 22);
+            this.expandMenu.Text = "展开";
+            this.expandMenu.Click += new System.EventHandler(this.expandMenu_Click);
+            // 
+            // collapseMenu
+            // 
+            this.collapseMenu.Name = "collapseMenu";
+            this.collapseMenu.Size = new System.Drawing.Size(100, 22);
+            this.collapseMenu.Text = "折叠";
+            this.collapseMenu.Click += new System.EventHandler(this.collapseMenu_Click);
             // 
             // splitContainer2
             // 
@@ -163,8 +177,8 @@
             // splitContainer2.Panel2
             // 
             this.splitContainer2.Panel2.Controls.Add(this.logRtb);
-            this.splitContainer2.Size = new System.Drawing.Size(710, 594);
-            this.splitContainer2.SplitterDistance = 366;
+            this.splitContainer2.Size = new System.Drawing.Size(744, 619);
+            this.splitContainer2.SplitterDistance = 381;
             this.splitContainer2.SplitterWidth = 6;
             this.splitContainer2.TabIndex = 0;
             this.splitContainer2.TabStop = false;
@@ -182,8 +196,8 @@
             // splitContainer3.Panel2
             // 
             this.splitContainer3.Panel2.Controls.Add(this.lastAdminLbx);
-            this.splitContainer3.Size = new System.Drawing.Size(710, 366);
-            this.splitContainer3.SplitterDistance = 486;
+            this.splitContainer3.Size = new System.Drawing.Size(744, 381);
+            this.splitContainer3.SplitterDistance = 471;
             this.splitContainer3.SplitterWidth = 6;
             this.splitContainer3.TabIndex = 0;
             this.splitContainer3.TabStop = false;
@@ -195,7 +209,7 @@
             this.dynCmdPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dynCmdPanel.Location = new System.Drawing.Point(0, 0);
             this.dynCmdPanel.Name = "dynCmdPanel";
-            this.dynCmdPanel.Size = new System.Drawing.Size(486, 366);
+            this.dynCmdPanel.Size = new System.Drawing.Size(471, 381);
             this.dynCmdPanel.TabIndex = 1;
             // 
             // argsBox
@@ -204,7 +218,7 @@
             this.argsBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.argsBox.Location = new System.Drawing.Point(0, 113);
             this.argsBox.Name = "argsBox";
-            this.argsBox.Size = new System.Drawing.Size(486, 253);
+            this.argsBox.Size = new System.Drawing.Size(471, 268);
             this.argsBox.TabIndex = 11;
             this.argsBox.TabStop = false;
             this.argsBox.Text = "参数";
@@ -214,7 +228,7 @@
             this.argsPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.argsPanel.Location = new System.Drawing.Point(3, 17);
             this.argsPanel.Name = "argsPanel";
-            this.argsPanel.Size = new System.Drawing.Size(480, 233);
+            this.argsPanel.Size = new System.Drawing.Size(465, 248);
             this.argsPanel.TabIndex = 0;
             // 
             // cmdGroupBox
@@ -235,7 +249,7 @@
             this.cmdGroupBox.Dock = System.Windows.Forms.DockStyle.Top;
             this.cmdGroupBox.Location = new System.Drawing.Point(0, 0);
             this.cmdGroupBox.Name = "cmdGroupBox";
-            this.cmdGroupBox.Size = new System.Drawing.Size(486, 113);
+            this.cmdGroupBox.Size = new System.Drawing.Size(471, 113);
             this.cmdGroupBox.TabIndex = 0;
             this.cmdGroupBox.TabStop = false;
             this.cmdGroupBox.Text = "命令";
@@ -367,14 +381,47 @@
             // 
             // lastAdminLbx
             // 
+            this.lastAdminLbx.ContextMenuStrip = this.lastMenuStrip;
             this.lastAdminLbx.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.lastAdminLbx.Font = new System.Drawing.Font("宋体", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.lastAdminLbx.FormattingEnabled = true;
-            this.lastAdminLbx.ItemHeight = 12;
+            this.lastAdminLbx.ItemHeight = 16;
             this.lastAdminLbx.Location = new System.Drawing.Point(0, 0);
             this.lastAdminLbx.Name = "lastAdminLbx";
-            this.lastAdminLbx.Size = new System.Drawing.Size(218, 366);
+            this.lastAdminLbx.Size = new System.Drawing.Size(267, 381);
             this.lastAdminLbx.TabIndex = 0;
             this.lastAdminLbx.TabStop = false;
+            this.lastAdminLbx.SelectedIndexChanged += new System.EventHandler(this.lastAdminLbx_SelectedIndexChanged);
+            // 
+            // lastMenuStrip
+            // 
+            this.lastMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.updateMenuItem,
+            this.resetMenuItem,
+            this.deleteMenuItem});
+            this.lastMenuStrip.Name = "lastMenuStrip";
+            this.lastMenuStrip.Size = new System.Drawing.Size(125, 70);
+            // 
+            // updateMenuItem
+            // 
+            this.updateMenuItem.Name = "updateMenuItem";
+            this.updateMenuItem.Size = new System.Drawing.Size(124, 22);
+            this.updateMenuItem.Text = "刷新";
+            this.updateMenuItem.Click += new System.EventHandler(this.updateMenuItem_Click);
+            // 
+            // resetMenuItem
+            // 
+            this.resetMenuItem.Name = "resetMenuItem";
+            this.resetMenuItem.Size = new System.Drawing.Size(124, 22);
+            this.resetMenuItem.Text = "清空";
+            this.resetMenuItem.Click += new System.EventHandler(this.resetMenuItem_Click);
+            // 
+            // deleteMenuItem
+            // 
+            this.deleteMenuItem.Name = "deleteMenuItem";
+            this.deleteMenuItem.Size = new System.Drawing.Size(124, 22);
+            this.deleteMenuItem.Text = "删除当前";
+            this.deleteMenuItem.Click += new System.EventHandler(this.deleteMenuItem_Click);
             // 
             // logRtb
             // 
@@ -382,7 +429,7 @@
             this.logRtb.Location = new System.Drawing.Point(0, 0);
             this.logRtb.Name = "logRtb";
             this.logRtb.ReadOnly = true;
-            this.logRtb.Size = new System.Drawing.Size(710, 222);
+            this.logRtb.Size = new System.Drawing.Size(744, 232);
             this.logRtb.TabIndex = 0;
             this.logRtb.TabStop = false;
             this.logRtb.Text = "";
@@ -393,7 +440,7 @@
             this.statusLabel});
             this.statusBar.Location = new System.Drawing.Point(0, 644);
             this.statusBar.Name = "statusBar";
-            this.statusBar.Size = new System.Drawing.Size(1018, 22);
+            this.statusBar.Size = new System.Drawing.Size(1007, 22);
             this.statusBar.TabIndex = 1;
             this.statusBar.Text = "statusStrip1";
             // 
@@ -402,54 +449,13 @@
             this.statusLabel.Name = "statusLabel";
             this.statusLabel.Size = new System.Drawing.Size(0, 17);
             // 
-            // adminTreeView
-            // 
-            this.adminTreeView.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.adminTreeView.HideSelection = false;
-            this.adminTreeView.Location = new System.Drawing.Point(0, 38);
-            this.adminTreeView.Name = "adminTreeView";
-            this.adminTreeView.Size = new System.Drawing.Size(302, 556);
-            this.adminTreeView.TabIndex = 1;
-            this.adminTreeView.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.adminTreeView_AfterSelect);
-            // 
-            // adminBar
-            // 
-            this.adminBar.Controls.Add(this.collapseBtn);
-            this.adminBar.Controls.Add(this.expandBtn);
-            this.adminBar.Dock = System.Windows.Forms.DockStyle.Top;
-            this.adminBar.Location = new System.Drawing.Point(0, 0);
-            this.adminBar.Name = "adminBar";
-            this.adminBar.Size = new System.Drawing.Size(302, 38);
-            this.adminBar.TabIndex = 2;
-            // 
-            // expandBtn
-            // 
-            this.expandBtn.Location = new System.Drawing.Point(4, 7);
-            this.expandBtn.Name = "expandBtn";
-            this.expandBtn.Size = new System.Drawing.Size(49, 23);
-            this.expandBtn.TabIndex = 0;
-            this.expandBtn.Text = "展开";
-            this.expandBtn.UseVisualStyleBackColor = true;
-            this.expandBtn.Click += new System.EventHandler(this.expandBtn_Click);
-            // 
-            // collapseBtn
-            // 
-            this.collapseBtn.Location = new System.Drawing.Point(60, 7);
-            this.collapseBtn.Name = "collapseBtn";
-            this.collapseBtn.Size = new System.Drawing.Size(48, 23);
-            this.collapseBtn.TabIndex = 1;
-            this.collapseBtn.Text = "折叠";
-            this.collapseBtn.UseVisualStyleBackColor = true;
-            this.collapseBtn.Click += new System.EventHandler(this.collapseBtn_Click);
-            // 
             // AdminForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1018, 666);
+            this.ClientSize = new System.Drawing.Size(1007, 666);
             this.Controls.Add(this.splitContainer1);
             this.Controls.Add(this.statusBar);
-            this.Controls.Add(this.toolStrip1);
             this.Controls.Add(this.menuStrip1);
             this.MainMenuStrip = this.menuStrip1;
             this.Name = "AdminForm";
@@ -457,12 +463,11 @@
             this.Load += new System.EventHandler(this.AdminForm_Load);
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
-            this.toolStrip1.ResumeLayout(false);
-            this.toolStrip1.PerformLayout();
             this.splitContainer1.Panel1.ResumeLayout(false);
             this.splitContainer1.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).EndInit();
             this.splitContainer1.ResumeLayout(false);
+            this.adminTreeMenuStrip.ResumeLayout(false);
             this.splitContainer2.Panel1.ResumeLayout(false);
             this.splitContainer2.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer2)).EndInit();
@@ -476,9 +481,9 @@
             this.cmdGroupBox.ResumeLayout(false);
             this.cmdGroupBox.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.countNum)).EndInit();
+            this.lastMenuStrip.ResumeLayout(false);
             this.statusBar.ResumeLayout(false);
             this.statusBar.PerformLayout();
-            this.adminBar.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -489,8 +494,6 @@
         private System.Windows.Forms.MenuStrip menuStrip1;
         private System.Windows.Forms.ToolStripMenuItem fileFToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem loadLToolStripMenuItem;
-        private System.Windows.Forms.ToolStrip toolStrip1;
-        private System.Windows.Forms.ToolStripButton toolStripButton1;
         private System.Windows.Forms.SplitContainer splitContainer1;
         private System.Windows.Forms.SplitContainer splitContainer2;
         private System.Windows.Forms.RichTextBox logRtb;
@@ -517,9 +520,13 @@
         private System.Windows.Forms.StatusStrip statusBar;
         private System.Windows.Forms.ToolStripStatusLabel statusLabel;
         private System.Windows.Forms.TreeView adminTreeView;
-        private System.Windows.Forms.Panel adminBar;
-        private System.Windows.Forms.Button collapseBtn;
-        private System.Windows.Forms.Button expandBtn;
+        private System.Windows.Forms.ContextMenuStrip adminTreeMenuStrip;
+        private System.Windows.Forms.ToolStripMenuItem expandMenu;
+        private System.Windows.Forms.ToolStripMenuItem collapseMenu;
+        private System.Windows.Forms.ContextMenuStrip lastMenuStrip;
+        private System.Windows.Forms.ToolStripMenuItem updateMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem resetMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem deleteMenuItem;
     }
 }
 

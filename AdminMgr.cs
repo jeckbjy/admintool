@@ -73,6 +73,30 @@ namespace AdminTool
             return builder.ToString();
         }
 
+        public string ConcatRecord()
+        {
+            // 去除了UID信息，因为不会解析uid,而且太长
+            StringBuilder builder = new StringBuilder();
+            builder.Append(Cmd);
+            builder.Append(",$uid");
+            for (int i = 1; i < Args.Count; ++i)
+            {
+                AdminArg arg = Args[i];
+                builder.Append(",");
+                if (arg.Base64)
+                {
+                    byte[] bytes = Encoding.UTF8.GetBytes(arg.Data);
+                    string str = Convert.ToBase64String(bytes);
+                    builder.Append(str);
+                }
+                else
+                {
+                    builder.Append(arg.Data);
+                }
+            }
+            return builder.ToString();
+        }
+
         public void Init()
         {
             StringBuilder builder = new StringBuilder();
@@ -106,6 +130,28 @@ namespace AdminTool
         }
     }
 
+    // 记录
+    class AdminRecord : IComparable
+    {
+        public string Cmd = null;  // 实际发送的gm
+        public List<string> Args = new List<string>();  // 参数,用于回填
+        public uint Count;  // 调用次数
+        public uint Time;   // 上次调用时间
+        // 用于显示
+        public override string ToString()
+        {
+            return Cmd;
+        }
+
+        public int CompareTo(object obj)
+        {
+            AdminRecord other = obj as AdminRecord;
+            if (Count == other.Count)
+                return other.Time.CompareTo(Time);
+            return other.Count.CompareTo(Count);
+        }
+    }
+
     // 配置文件信息
     class AdminCfg
     {
@@ -113,6 +159,7 @@ namespace AdminTool
         public List<string> UIds = new List<string>();
         public List<string> Hosts = new List<string>();
         public int Port = 2020;
+        public int RecordMax = 10;      // 最多保留10条
 
         public bool Load(string path)
         {
@@ -299,13 +346,19 @@ namespace AdminTool
     {
         public const string sConfigPath = "./cmd.cfg";
         public const string sUserDataPath = "./user.data";
+        public const string sUIDsDataPath = "./uids.data";  // 所有最近使用uid
+        // 分隔符
+        private const char record_code = (char)0x1E;
+        private const char unit_code = (char)0x1F;
+
         private static AdminMgr instance;
         private AdminForm m_form;
 
         public AdminCfg Config = new AdminCfg();
         public List<string> UIds = new List<string>();      // 最近使用的，以及配置的
+        public string LastUID = "";
+        public Dictionary<string, List<AdminRecord>> Records = new Dictionary<string, List<AdminRecord>>();
         private Socket m_socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        //private TcpClient m_socket = new TcpClient();
         // 当前连接
         private string m_host;
         private int m_port;
@@ -326,6 +379,12 @@ namespace AdminTool
             }
         }
 
+        public static uint TimeNow()
+        {
+            TimeSpan span = DateTime.Now - TimeZone.CurrentTimeZone.ToLocalTime(new System.DateTime(1970, 1, 1));
+            return (uint)span.TotalSeconds;
+        }
+
         public static AdminMgr Instance()
         {
             if(instance == null)
@@ -336,53 +395,168 @@ namespace AdminTool
         public AdminMgr()
         {
             m_socket.Blocking = false;
-            LoadConfig();
+            Load();
         }
 
-        public void AddTest()
+        public void Load()
         {
-            AdminCmd cmd = new AdminCmd();
-            cmd.Name = "金钱";
-            cmd.AddArg("add_money", "add_money", false);
-            cmd.AddArg("数量", "1", true);
-            //AdminArg arg = new AdminArg();
-            //arg.CanEdit = true;
-            //arg.Name = "数量";
-            //cmd.Add(arg);
-            AdminCmd cmd1 = new AdminCmd();
-            cmd1.Name = "经验";
-            cmd1.AddArg("add_exp", "add_exp", false);
-            cmd1.AddArg("类型", "1", true);
-            cmd1.AddArg("数量", "1000", true);
-
-            Cmds.Add(cmd);
-            Cmds.Add(cmd1);
-
-            UIds.Add("u72620561171318476");
-            UIds.Add("u72620561171318477");
+            LoadConfig();
+            LoadUIDData();
+            LoadUserData();
+            foreach(var uid in Config.UIds)
+            {
+                if (UIds.Contains(uid))
+                    continue;
+                UIds.Add(uid);
+            }
         }
 
-        public bool LoadConfig()
+        public void Save()
+        {
+            SaveUserData();
+            SaveUIDData();
+        }
+
+        private bool LoadConfig()
         {
             if(!Config.Load(sConfigPath))
             {
                 WriteLog("加载Admin配置失败!");
                 return false;
             }
-            // 配置的uid
-            UIds.AddRange(Config.UIds);
 
             return true;
         }
 
-        public void LoadUserData()
+        private void LoadUserData()
         {
             // 加载自定义数据
+            if (!File.Exists(sUserDataPath))
+                return;
+            try
+            {
+                Records.Clear();
+                StreamReader reader = new StreamReader(sUserDataPath, Encoding.Default);
+                while (!reader.EndOfStream)
+                {
+                    string str = reader.ReadLine();
+                    string[] tokens = str.Split(record_code);
+                    if (tokens[0] == "record")
+                    {
+                        if (tokens.Length < 3)
+                            continue;
+                        List<AdminRecord> record_list = new List<AdminRecord>();
+                        string key = tokens[1];
+                        for (int i = 2; i < tokens.Length; ++i)
+                        {
+                            string[] record_tokens = tokens[i].Split(unit_code);
+                            if (record_tokens.Length < 2)
+                                continue;
+                            AdminRecord record = new AdminRecord();
+                            record.Cmd = record_tokens[0];
+                            for (int j = 1; j < record_tokens.Length; ++j)
+                            {
+                                record.Args.Add(record_tokens[j]);
+                            }
+                            record_list.Add(record);
+                        }
+                        Records[key] = record_list;
+                    }
+                }
+                reader.Close();
+            }
+            catch(Exception e)
+            {
+                WriteLog(e.Message);
+            }
         }
 
-        public void SaveUserData()
+        private void SaveUserData()
         {
             // 保存历史数据
+            try
+            {
+                FileStream stream = new FileStream(sUserDataPath, FileMode.OpenOrCreate);
+                StreamWriter writer = new StreamWriter(stream, Encoding.Default);
+                foreach (var kv in Records)
+                {
+                    if (kv.Value.Count == 0)
+                        continue;
+                    List<AdminRecord> record_list = kv.Value;
+                    writer.Write("record");
+                    writer.Write(record_code);
+                    writer.Write(kv.Key);
+                    for (int i = 0; i < record_list.Count; ++i)
+                    {
+                        writer.Write(record_code);
+                        AdminRecord record = record_list[i];
+                        writer.Write(record.Cmd);
+                        // 写入args
+                        for (int j = 0; j < record.Args.Count; ++j)
+                        {
+                            writer.Write(unit_code);
+                            writer.Write(record.Args[j]);
+                        }
+                    }
+                    // 换行
+                    writer.WriteLine();
+                }
+                writer.Flush();
+                writer.Close();
+            }
+            catch(Exception e)
+            {
+                WriteLog(e.Message);
+            }
+        }
+
+        private void LoadUIDData()
+        {
+            if (!File.Exists(sUIDsDataPath))
+                return;
+            try
+            {
+                StreamReader reader = new StreamReader(sUIDsDataPath, Encoding.Default);
+                while (!reader.EndOfStream)
+                {
+                    string str = reader.ReadLine();
+                    string[] tokens = str.Split(',');
+                    if (tokens.Length == 0)
+                        continue;
+                    LastUID = tokens[0];
+                    for(int i = 1; i < tokens.Length; ++i)
+                    {
+                        UIds.Add(tokens[i]);
+                    }
+                }
+                reader.Close();
+            }
+            catch(Exception e)
+            {
+                WriteLog(e.Message);
+            }
+        }
+
+        private void SaveUIDData()
+        {
+            try
+            {
+                FileStream stream = new FileStream(sUIDsDataPath, FileMode.OpenOrCreate);
+                StreamWriter writer = new StreamWriter(stream, Encoding.Default);
+                writer.Write(LastUID);
+                // 先写入最近
+                foreach(var uid in UIds)
+                {
+                    writer.Write(",");
+                    writer.Write(uid);
+                }
+                writer.Flush();
+                writer.Close();
+            }
+            catch(Exception e)
+            {
+                WriteLog(e.Message);
+            }
         }
 
         public void setForm(AdminForm form)
@@ -392,7 +566,87 @@ namespace AdminTool
 
         public void WriteLog(string info)
         {
-            m_form.InvokeWriteLog(info);
+            if(m_form != null)
+                m_form.InvokeWriteLog(info);
+        }
+
+        public bool UpdateUID(string uid)
+        {
+            LastUID = uid;
+            // 记录uid
+            if (!UIds.Contains(uid))
+            {
+                UIds.Add(uid);
+                return true;
+            }
+            return false;
+        }
+
+        public List<AdminRecord> FindRecord(string cmd)
+        {
+            List<AdminRecord> record_list;
+            if (Records.TryGetValue(cmd, out record_list))
+                return record_list;
+            return null;
+        }
+
+        public void ClearRecord(string cmd)
+        {
+            Records.Remove(cmd);
+        }
+
+        public void DeleteRecord(string cmd, int index)
+        {
+            List<AdminRecord> records;
+            if (!Records.TryGetValue(cmd, out records))
+                return;
+            if (index >= records.Count)
+                return;
+            records.RemoveAt(index);
+        }
+
+        public void UpdateRecord(string cmd)
+        {
+            List<AdminRecord> records;
+            if (!Records.TryGetValue(cmd, out records))
+                return;
+            records.Sort();
+            if(records.Count > Config.RecordMax)
+            {
+                records.RemoveRange(Config.RecordMax, records.Count - Config.RecordMax);
+            }
+        }
+
+        public bool AddRecord(string cmd, AdminRecord record)
+        {
+            // 记录record
+            record.Count = 1;
+            record.Time = TimeNow();
+            bool need_find = true;
+            List<AdminRecord> record_list;
+            if(!Records.TryGetValue(cmd, out record_list))
+            {
+                record_list = new List<AdminRecord>();
+                Records[cmd] = record_list;
+                need_find = false;
+            }
+            if(need_find)
+            {
+                // 查找是否已经存在
+                for (int i = 0; i < record_list.Count; ++i)
+                {
+                    AdminRecord node = record_list[i];
+                    if (node.Cmd == record.Cmd)
+                    {
+                        node.Count++;
+                        node.Time = record.Time;
+                        return true;
+                    }
+                }
+            }
+            // 没有找到,添加
+            record_list.Add(record);
+            return false;
         }
 
         public bool Connect()
@@ -523,13 +777,13 @@ namespace AdminTool
         }
 
         // 执行命令
-        public void Execute(AdminCmd cmd, int count = 1)
+        public bool Execute(string msg, int count = 1)
         {
             if (!CheckConnect())
-                return;
-            string msg = cmd.Concat();
+                return false;
             for (int i = 0; i < count; ++i)
                 Send(msg);
+            return true;
         }
     }
 }
