@@ -31,7 +31,7 @@
             this.components = new System.ComponentModel.Container();
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.fileFToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.loadLToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.loadMenu = new System.Windows.Forms.ToolStripMenuItem();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.adminTreeView = new System.Windows.Forms.TreeView();
             this.adminTreeMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
@@ -100,16 +100,17 @@
             // fileFToolStripMenuItem
             // 
             this.fileFToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.loadLToolStripMenuItem});
+            this.loadMenu});
             this.fileFToolStripMenuItem.Name = "fileFToolStripMenuItem";
             this.fileFToolStripMenuItem.Size = new System.Drawing.Size(53, 21);
             this.fileFToolStripMenuItem.Text = "File(&F)";
             // 
-            // loadLToolStripMenuItem
+            // loadMenu
             // 
-            this.loadLToolStripMenuItem.Name = "loadLToolStripMenuItem";
-            this.loadLToolStripMenuItem.Size = new System.Drawing.Size(119, 22);
-            this.loadLToolStripMenuItem.Text = "Load(&L)";
+            this.loadMenu.Name = "loadMenu";
+            this.loadMenu.Size = new System.Drawing.Size(152, 22);
+            this.loadMenu.Text = "Load(&L)";
+            this.loadMenu.Click += new System.EventHandler(this.loadMenu_Click);
             // 
             // splitContainer1
             // 
@@ -493,7 +494,7 @@
 
         private System.Windows.Forms.MenuStrip menuStrip1;
         private System.Windows.Forms.ToolStripMenuItem fileFToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem loadLToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem loadMenu;
         private System.Windows.Forms.SplitContainer splitContainer1;
         private System.Windows.Forms.SplitContainer splitContainer2;
         private System.Windows.Forms.RichTextBox logRtb;

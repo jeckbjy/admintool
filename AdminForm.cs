@@ -54,6 +54,8 @@ namespace AdminTool
         public void InitForm()
         {
             // 初始化命令列表
+            adminTreeView.Nodes.Clear();
+
             Dictionary<string, TreeNode> nodes = new Dictionary<string, TreeNode>();
             List<AdminCmd> cmds = m_mgr.Cmds;
             for (int i = 0; i < cmds.Count; ++i)
@@ -77,8 +79,8 @@ namespace AdminTool
             // 展开所有
             adminTreeView.ExpandAll();
 
-                // init host
-                hostCbx.Items.Clear();
+            // init host
+            hostCbx.Items.Clear();
             List<string> hosts = m_mgr.HostList;
             if(hosts.Count > 0)
             {
@@ -309,6 +311,12 @@ namespace AdminTool
                 return;
             m_mgr.DeleteRecord(cmd.Name, lastAdminLbx.SelectedIndex);
             UpdateRecord();
+        }
+
+        private void loadMenu_Click(object sender, EventArgs e)
+        {
+            m_mgr.LoadConfig();
+            InitForm();
         }
     }
 }

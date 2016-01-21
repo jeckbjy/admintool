@@ -166,6 +166,10 @@ namespace AdminTool
             // 加载配置文件
             if (!File.Exists(path))
                 return false;
+            // clear first
+            Cmds.Clear();
+            UIds.Clear();
+            Hosts.Clear();
             StreamReader reader = new StreamReader(path, Encoding.Default);
             while (!reader.EndOfStream)
             {
@@ -176,6 +180,15 @@ namespace AdminTool
                 // 注释行
                 if (flag == '#')
                     continue;
+                // 注释信息以##开始
+                string node = null;
+                int node_pos = str.IndexOf('#');
+                if(node_pos != -1)
+                {
+                    node = str.Substring(node_pos + 1).Trim();
+                    str = str.Substring(0, node_pos).Trim();
+                }
+                // 正式内容
                 int pos = str.IndexOf('=');
                 if (pos == -1)
                     return false;
@@ -210,7 +223,15 @@ namespace AdminTool
                             {
                                 if (tokens.Length < 2)
                                     return false;
-                                ParseCmd(tokens);
+                                AdminCmd cmd = ParseCmd(tokens);
+                                if(cmd != null)
+                                {
+                                    if (!string.IsNullOrEmpty(node))
+                                        cmd.Desc = node;
+                                    else
+                                        cmd.Init();
+                                }
+
                             }
                             break;
                     }
@@ -219,7 +240,7 @@ namespace AdminTool
             reader.Close();
             return true;
         }
-        private void ParseCmd(string[] tokens)
+        private AdminCmd ParseCmd(string[] tokens)
         {
             // 解析时使用
             int pos;
@@ -246,7 +267,7 @@ namespace AdminTool
                     {
                         int back_pos = arg_str.IndexOf(']', pos);
                         if (back_pos == -1)
-                            return;
+                            return null;
                         string props = arg_str.Substring(pos + 1, back_pos - pos - 1);
                         arg_str = arg_str.Substring(0, pos);
                         ParseProperty(arg, props);
@@ -287,7 +308,7 @@ namespace AdminTool
                     }
                 }
             }
-            cmd.Init();
+            return cmd;
         }
 
         private void ParseProperty(AdminArg arg, string props)
@@ -417,7 +438,7 @@ namespace AdminTool
             SaveUIDData();
         }
 
-        private bool LoadConfig()
+        public bool LoadConfig()
         {
             if(!Config.Load(sConfigPath))
             {
