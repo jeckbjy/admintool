@@ -53,42 +53,42 @@ namespace AdminTool
         {
             get
             {
-                if (dataBox.DropDownStyle == ComboBoxStyle.DropDownList)
-                    return SelectedText;
-                return dataBox.Text;
-            }
-            set
-            {
-                // 设置selected
-                if(dataBox.DropDownStyle != ComboBoxStyle.Simple)
+                AdminArg arg = this.Tag as AdminArg;
+                if (arg == null)
+                    return "";
+                string text;
+                if(this.dataBox.DropDownStyle == ComboBoxStyle.DropDownList)
                 {
-                    AdminOption finded = null;
-                    // 查找
-                    for(int i = 0; i < dataBox.Items.Count; ++i)
-                    {
-                        object obj = dataBox.Items[i];
-                        if (obj.GetType() != typeof(AdminOption))
-                            break;
-                        AdminOption opt = obj as AdminOption;
-                        if(opt.Data == value)
-                        {
-                            finded = opt;
-                            break;
-                        }
-                    }
-                    if(finded != null)
-                    {
-                        dataBox.SelectedItem = finded;
-                        dataBox.Text = finded.Name;
-                    }
-                    else
-                    {
-                        dataBox.Text = value;
-                    }
+                    text = SelectedText;
                 }
                 else
                 {
-                    dataBox.Text = value;
+                    text = dataBox.Text;
+                }
+
+                if(arg.Base64)
+                {
+                    byte[] bytes = Encoding.Default.GetBytes(text);
+                    text = Convert.ToBase64String(bytes);
+                }
+                return text;
+            }
+            set
+            {
+                if (string.IsNullOrEmpty(value))
+                    return;
+                if(this.Style == ComboBoxStyle.DropDownList)
+                {
+                    AdminArg arg = this.Tag as AdminArg;
+                    if (arg == null)
+                        return;
+                    AdminOption option = arg.FindOptionByData(value);
+                    if(option != null)
+                        dataBox.Text = option.Name;
+                }
+                else
+                {
+                    this.dataBox.Text = value;
                 }
             }
         }
@@ -106,17 +106,51 @@ namespace AdminTool
             }
         }
 
-        internal void AddOptions(List<AdminOption> options, bool canEdit)
+        internal void Init(AdminArg arg)
         {
-            for(int i = 0; i < options.Count; ++i)
+            // 先清空
+            this.dataBox.Text = null;
+            this.dataBox.Items.Clear();
+            dataBox.SuspendLayout();
+            switch(arg.Style)
             {
-                dataBox.Items.Add(options[i]);
+                case BoxStyle.Text:
+                    {
+                        this.Style = ComboBoxStyle.Simple;
+                    }
+                    break;
+                case BoxStyle.Combox:
+                    {// 下拉菜单
+                        this.Style = ComboBoxStyle.DropDown;
+                        if(arg.Items.Count > 0)
+                        {
+                            foreach (var item in arg.Items)
+                            {
+                                dataBox.Items.Add(item);
+                            }
+                            this.dataBox.SelectedIndex = 0;
+                        }
+                    }
+                    break;
+                case BoxStyle.Option:
+                    {
+                        this.Style = ComboBoxStyle.DropDownList;
+                        if(arg.Options.Count > 0)
+                        {
+                            foreach (var option in arg.Options)
+                            {
+                                dataBox.Items.Add(option);
+                            }
+                            this.dataBox.SelectedIndex = 0;
+                        }
+                    }
+                    break;
             }
-            dataBox.SelectedIndex = 0;
-            if (canEdit)
-                Style = ComboBoxStyle.DropDown;
-            else
-                Style = ComboBoxStyle.DropDownList;
+
+            this.Tag = arg;
+            this.ArgName = arg.Show;
+            this.ArgData = arg.Data;
+            dataBox.ResumeLayout();
         }
     }
 }

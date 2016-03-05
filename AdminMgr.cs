@@ -1,53 +1,92 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Net.Sockets;
+using System.Xml;
 using System.IO;
+using System.Windows.Forms;
 
 namespace AdminTool
 {
     // 选项
-    class AdminOption
+    internal class AdminOption
     {
-        public string Name; // 显示数据
-        public string Data; // 使用数据
+        public string Name = ""; // 显示数据
+        public string Data = ""; // 使用数据
 
         public override string ToString()
         {
             return Name;
         }
     }
+
+    enum BoxStyle
+    {
+        Text,       // 纯文本
+        Combox,     // 默认下来列表和文本
+        Option,     // 下拉列表
+    }
+
     // 参数
-    class AdminArg
+    internal class AdminArg
     {
         public bool CanEdit = true;
         public bool Base64 = false;
         public bool CanEditOption = false;
-        public string Name;
-        public string Data; // 初始值
+        public uint Max = 20;   // 最多保存的选项
+        public string Name;     // 名字
+        public string Show;     // 显示名字
+        public string Data;     // 编辑的数据
+        public BoxStyle Style = BoxStyle.Combox;
         public List<AdminOption> Options = new List<AdminOption>();
+        // 常用备选项
+        public List<string> Items = new List<string>();
 
-        public bool HasOptions
+        public AdminOption FindOptionByData(string data)
         {
-            get
+            foreach(var option in Options)
             {
-                return Options.Count > 0;
+                if (option.Data == data)
+                    return option;
             }
+            return null;
+        }
+
+        public bool AddItem(string item)
+        {
+            if (Style != BoxStyle.Combox || this.Items.Count > Max)
+                return false;
+            // 查找，不能重复
+            foreach(var data in Items)
+            {
+                if (data == item)
+                    return false;
+            }
+            Items.Add(item);
+            return true;
         }
     }
 
     // 每个命令
-    class AdminCmd
+    internal class AdminCmd
     {
         public string Group = "普通";    // 所属组
-        public string Name;
-        public string Cmd;
-        public string Uid;
+        public string Name = "";
+        public string Cmd = "";
         public string Desc;
+        public string Uid;
         // 至少有1个数据
         public List<AdminArg> Args = new List<AdminArg>();
+
+        public AdminArg GetArg(string name)
+        {
+            for(int i = 0; i < Args.Count; ++i)
+            {
+                if (Args[i].Name == name)
+                    return Args[i];
+            }
+            return null;
+        }
 
         public string Concat()
         {
@@ -124,31 +163,21 @@ namespace AdminTool
         public override string ToString()
         {
             return Name;
-            //if(Show == null)
-            //    Show = Name + "[" + Cmd + "]";
-            //return Show;
-        }
-    }
-
-    // 记录
-    class AdminRecord : IComparable
-    {
-        public string Cmd = null;  // 实际发送的gm
-        public List<string> Args = new List<string>();  // 参数,用于回填
-        public uint Count;  // 调用次数
-        public uint Time;   // 上次调用时间
-        // 用于显示
-        public override string ToString()
-        {
-            return Cmd;
         }
 
-        public int CompareTo(object obj)
+        public bool NeedRecord()
         {
-            AdminRecord other = obj as AdminRecord;
-            if (Count == other.Count)
-                return other.Time.CompareTo(Time);
-            return other.Count.CompareTo(Count);
+            if (Args.Count == 0)
+                return false;
+
+            foreach(var arg in Args)
+            {
+                if(!arg.CanEdit)
+                    continue;
+                if (!string.IsNullOrEmpty(arg.Data) || arg.Items.Count > 0)
+                    return true;
+            }
+            return false;
         }
     }
 
@@ -158,231 +187,194 @@ namespace AdminTool
         public List<AdminCmd> Cmds = new List<AdminCmd>();
         public List<string> UIds = new List<string>();
         public List<string> Hosts = new List<string>();
-        public int Port = 2020;
-        public int RecordMax = 10;      // 最多保留10条
+
+        public bool AddUID(string uid)
+        {
+            if (UIds.IndexOf(uid) != -1)
+                return false;
+            UIds.Add(uid);
+            return true;
+        }
+
+        public AdminCmd FindCmd(string key)
+        {
+            foreach(var cmd in Cmds)
+            {
+                if (cmd.Cmd == key)
+                    return cmd;
+            }
+            return null;
+        }
 
         public bool Load(string path)
         {
             // 加载配置文件
             if (!File.Exists(path))
                 return false;
-            // clear first
-            Cmds.Clear();
+            XmlDocument doc = new XmlDocument();
+            doc.Load(path);
+            XmlElement root = doc.DocumentElement;
+            XmlNodeList nodes;
+            XmlElement elem;
+            // uid
             UIds.Clear();
-            Hosts.Clear();
-            StreamReader reader = new StreamReader(path, Encoding.Default);
-            while (!reader.EndOfStream)
+            nodes = root.GetElementsByTagName("uid");
+            foreach(var node in nodes)
             {
-                string str = reader.ReadLine().Trim();
-                if (string.IsNullOrEmpty(str))
-                    continue;
-                char flag = str[0];
-                // 注释行
-                if (flag == '#')
-                    continue;
-                // 注释信息以##开始
-                string node = null;
-                int node_pos = str.IndexOf('#');
-                if(node_pos != -1)
-                {
-                    node = str.Substring(node_pos + 1).Trim();
-                    str = str.Substring(0, node_pos).Trim();
-                }
-                // 正式内容
-                int pos = str.IndexOf('=');
-                if (pos == -1)
-                    return false;
-                string tags = str.Substring(0, pos).Trim();
-                string info = str.Substring(pos + 1).Trim();
-                if(tags == "port")
-                {
-                    Port = Int32.Parse(info);
-                }
-                else
-                {
-                    string[] tokens = info.Split(',');
-                    // trim
-                    for (int i = 0; i < tokens.Length; ++i )
-                    {
-                        tokens[i] = tokens[i].Trim();
-                    }
-                    // check
-                    switch (tags)
-                    {
-                        case "uids":
-                            {
-                                UIds.AddRange(tokens);
-                            }
-                            break;
-                        case "host":
-                            {
-                                Hosts.AddRange(tokens);
-                            }
-                            break;
-                        case "cmd":
-                            {
-                                if (tokens.Length < 2)
-                                    return false;
-                                AdminCmd cmd = ParseCmd(tokens);
-                                if(cmd != null)
-                                {
-                                    if (!string.IsNullOrEmpty(node))
-                                        cmd.Desc = node;
-                                    else
-                                        cmd.Init();
-                                }
-
-                            }
-                            break;
-                    }
-                }
+                elem = node as XmlElement;
+                string uid = elem.InnerText;
+                if (!uid.StartsWith("u"))
+                    uid = "u" + uid;
+                UIds.Add(uid);
             }
-            reader.Close();
+
+            // hosts
+            Hosts.Clear();
+            nodes = root.GetElementsByTagName("host");
+            foreach(var node in nodes)
+            {
+                elem = node as XmlElement;
+                string host = elem.InnerText;
+                Hosts.Add(host);
+            }
+
+            Cmds.Clear();
+            nodes = root.GetElementsByTagName("cmd");
+            foreach(var node in nodes)
+            {
+                ReadCmd((XmlElement)node);
+            }
+            // 读取cmd
             return true;
         }
-        private AdminCmd ParseCmd(string[] tokens)
-        {
-            // 解析时使用
-            int pos;
-            AdminCmd cmd = new AdminCmd();
-            Cmds.Add(cmd);
-            cmd.Group = tokens[0];
-            cmd.Name = tokens[1];
-            cmd.Cmd = tokens[2];
-            if(tokens.Length > 3)
-            {
-                int args_start = tokens[3] == "$uid" ? 3 : 2;
-                // 解析参数
-                for (int i = args_start; i < tokens.Length; ++i)
-                {
-                    string arg_str = tokens[i];
-                    // 忽略无效
-                    if (string.IsNullOrEmpty(arg_str))
-                        continue;
-                    AdminArg arg = new AdminArg();
-                    cmd.Args.Add(arg);
-                    // 解析属性
-                    pos = arg_str.IndexOf('[');
-                    if(pos != -1)
-                    {
-                        int back_pos = arg_str.IndexOf(']', pos);
-                        if (back_pos == -1)
-                            return null;
-                        string props = arg_str.Substring(pos + 1, back_pos - pos - 1);
-                        arg_str = arg_str.Substring(0, pos);
-                        ParseProperty(arg, props);
-                    }
-                    // 说明是变量
-                    if (arg_str[0] == '$')
-                    {
-                        arg.CanEdit = true;
-                        arg.Base64 = false;
-                    }
-                    else if (arg_str[0] == '@')
-                    {// base64
-                        arg.CanEdit = true;
-                        arg.Base64 = true;
-                    }
-                    else
-                    {
-                        arg.CanEdit = false;
-                        arg.Base64 = false;
-                    }
 
-                    if (arg.CanEdit)
-                    {
-                        pos = arg_str.IndexOf('=');
-                        if (pos == -1)
-                        {//无默认值 
-                            arg.Name = arg_str.Substring(1).Trim();
-                        }
-                        else
-                        {// 含有默认值
-                            arg.Name = arg_str.Substring(1, pos - 1).Trim();
-                            arg.Data = arg_str.Substring(pos + 1).Trim();
-                        }
-                    }
-                    else
-                    {// 不可编辑，固定值
-                        arg.Name = arg.Data = arg_str;
-                    }
-                }
+        private void ReadArray(XmlElement root, string name, List<string> values)
+        {
+            values.Clear();
+            XmlNodeList nodes = root.GetElementsByTagName(name);
+            if (nodes.Count == 0)
+                return;
+            XmlElement elem = (XmlElement)nodes[0];
+            string attr = elem.GetAttribute("value");
+            string[] tokens = attr.Split(new char[]{','});
+            foreach(var token in tokens)
+            {
+                values.Add(token);
             }
-            return cmd;
         }
 
-        private void ParseProperty(AdminArg arg, string props)
+        private void ReadCmd(XmlElement node)
         {
-            int pos;
-            // 解析属性
-            string[] tokens = props.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
-            for(int i = 0; i < tokens.Length; ++i)
+            string[] tokens;
+            AdminCmd cmd = new AdminCmd();
+            Cmds.Add(cmd);
+            cmd.Group = node.GetAttribute("group");
+            cmd.Name = node.GetAttribute("name");
+            //cmd.Cmd = node.GetAttribute("value");
+            cmd.Desc = ReadAttribute(node, "note", "");
+            string value = node.GetAttribute("value");
+            tokens = value.Split(new char[] { ',' });
+            cmd.Cmd = tokens[0];
+            int tmp;
+            for(int i = 1; i < tokens.Length; ++i)
             {
-                string key;
-                string value;
-                string token = tokens[i].Trim();
-                pos = token.IndexOf('=');
-                if(pos == -1)
+                AdminArg arg = new AdminArg();
+                arg.Name = tokens[i].Trim();
+                arg.Show = arg.Name;
+                if (int.TryParse(arg.Name, out tmp))
                 {
-                    key = token;
-                    value = null;
+                    arg.CanEdit = false;
+                    arg.Data = arg.Name;
                 }
                 else
                 {
-                    key = token.Substring(0, pos).Trim();
-                    value = token.Substring(pos + 1).Trim();
+                    arg.CanEdit = true;
                 }
-                // 备选
-                if(value != null)
+                cmd.Args.Add(arg);
+            }
+
+            // 解析详细信息
+            XmlNodeList param_nodes = node.GetElementsByTagName("arg");
+            foreach(var param in param_nodes)
+            {
+                XmlElement elem = (XmlElement)param;
+                string name = elem.GetAttribute("name");
+                AdminArg arg = cmd.GetArg(name);
+                if (arg == null)
+                    continue;
+
+                if (elem.HasAttribute("show"))
+                    arg.Show = elem.GetAttribute("show");
+                if (elem.HasAttribute("base64"))
+                    arg.Base64 = true;
+                if (elem.HasAttribute("style"))
+                    arg.Style = ParseStyle(elem.GetAttribute("style"));
+
+                if (elem.HasAttribute("limit"))
+                    UInt32.TryParse(elem.GetAttribute("limit"), out arg.Max);
+
+                if(elem.HasAttribute("options"))
                 {
-                    if (key == "options" || key == "selected")
+                    arg.Style = BoxStyle.Option;
+                    tokens = elem.GetAttribute("options").Split(new char[]{'|', ','});
+                    foreach(var option in tokens)
                     {
-                        arg.CanEditOption = key == "options" ? false : true;
-                        string[] opt_tokens = value.Split('|');
-                        for (int j = 0; j < opt_tokens.Length; ++j)
-                        {
-                            AdminOption option = new AdminOption();
-                            arg.Options.Add(option);
-                            string opt_str = opt_tokens[j].Trim();
-                            pos = opt_str.IndexOf(":");
-                            if (pos == -1)
-                            {// 一致
-                                option.Name = opt_str;
-                                option.Data = opt_str;
-                            }
-                            else
-                            {
-                                option.Name = opt_str.Substring(0, pos).Trim();
-                                option.Data = opt_str.Substring(pos + 1).Trim();
-                            }
-                        }
+                        int pos = option.IndexOf(':');
+                        if(pos == -1)
+                            continue;
+                        AdminOption op = new AdminOption();
+                        op.Name = option.Substring(0, pos).Trim();
+                        op.Data = option.Substring(pos + 1).Trim();
+                        arg.Options.Add(op);
+                    }
+                }
+
+                if(elem.HasAttribute("items"))
+                {
+                    arg.Style = BoxStyle.Combox;
+                    tokens = elem.GetAttribute("items").Split(new char[] { ',', '|' });
+                    foreach(var item in tokens)
+                    {
+                        arg.Items.Add(item.Trim());
                     }
                 }
             }
+        }
+
+        private string ReadAttribute(XmlElement node, string name, string defaultValue)
+        {
+            if (!node.HasAttribute(name))
+                return defaultValue;
+            return node.GetAttribute(name);
+        }
+
+        private BoxStyle ParseStyle(string style)
+        {
+            switch(style)
+            {
+                case "text": return BoxStyle.Text;
+                case "combox": return BoxStyle.Combox;
+                case "option": return BoxStyle.Option;
+            }
+            return BoxStyle.Combox;
         }
     }
 
     // 命令管理
     class AdminMgr
     {
-        public const string sConfigPath = "./cmd.cfg";
-        public const string sUserDataPath = "./user.data";
-        public const string sUIDsDataPath = "./uids.data";  // 所有最近使用uid
-        // 分隔符
-        private const char record_code = (char)0x1E;
-        private const char unit_code = (char)0x1F;
+        public const string sConfigPath = "./cmd.xml";
+        public const string sUserDataPath = "./data.xml";
 
         private static AdminMgr instance;
         private AdminForm m_form;
 
         public AdminCfg Config = new AdminCfg();
-        public List<string> UIds = new List<string>();      // 最近使用的，以及配置的
         public string LastUID = "";
-        public Dictionary<string, List<AdminRecord>> Records = new Dictionary<string, List<AdminRecord>>();
+        private bool m_dirty = false;
         private Socket m_socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         // 当前连接
         private string m_host;
-        private int m_port;
 
         public List<AdminCmd> Cmds
         {
@@ -392,18 +384,20 @@ namespace AdminTool
             }
         }
 
-        public List<string> HostList
+        public List<string> Uids
+        {
+            get
+            {
+                return Config.UIds;
+            }
+        }
+
+        public List<string> Hosts
         {
             get
             {
                 return Config.Hosts;
             }
-        }
-
-        public static uint TimeNow()
-        {
-            TimeSpan span = DateTime.Now - TimeZone.CurrentTimeZone.ToLocalTime(new System.DateTime(1970, 1, 1));
-            return (uint)span.TotalSeconds;
         }
 
         public static AdminMgr Instance()
@@ -419,23 +413,27 @@ namespace AdminTool
             Load();
         }
 
+        public void MarkDirty()
+        {
+            m_dirty = true;
+        }
+
         public void Load()
         {
-            LoadConfig();
-            LoadUIDData();
-            LoadUserData();
-            foreach(var uid in Config.UIds)
+            try
             {
-                if (UIds.Contains(uid))
-                    continue;
-                UIds.Add(uid);
+                LoadConfig();
+                LoadUserData();
+            }
+            catch(Exception e)
+            {
+                MessageBox.Show(e.Message);
             }
         }
 
         public void Save()
         {
             SaveUserData();
-            SaveUIDData();
         }
 
         public bool LoadConfig()
@@ -456,35 +454,48 @@ namespace AdminTool
                 return;
             try
             {
-                Records.Clear();
-                StreamReader reader = new StreamReader(sUserDataPath, Encoding.Default);
-                while (!reader.EndOfStream)
+                XmlDocument doc = new XmlDocument();
+                doc.Load(sUserDataPath);
+                XmlElement root = doc.DocumentElement;
+                XmlNodeList nodes;
+                XmlElement  elem;
+                nodes = root.GetElementsByTagName("last_uid");
+                if(nodes.Count > 0)
                 {
-                    string str = reader.ReadLine();
-                    string[] tokens = str.Split(record_code);
-                    if (tokens[0] == "record")
+                    LastUID = (nodes[0] as XmlElement).InnerText;
+                }
+                nodes = root.GetElementsByTagName("uid");
+                foreach(var node in nodes)
+                {
+                    elem = node as XmlElement;
+                    Config.AddUID(elem.InnerText);
+                }
+
+                // 命令
+                nodes = root.GetElementsByTagName("cmd");
+                foreach(var node in nodes)
+                {
+                    elem = node as XmlElement;
+                    string key = elem.GetAttribute("name");
+                    AdminCmd cmd = Config.FindCmd(key);
+                    if(cmd == null)
+                        continue;
+                    XmlNodeList arg_nodes = elem.GetElementsByTagName("arg");
+                    foreach(var arg_node in arg_nodes)
                     {
-                        if (tokens.Length < 3)
+                        XmlElement arg_elem = arg_node as XmlElement;
+                        AdminArg arg = cmd.GetArg(arg_elem.GetAttribute("name"));
+                        if (arg == null)
                             continue;
-                        List<AdminRecord> record_list = new List<AdminRecord>();
-                        string key = tokens[1];
-                        for (int i = 2; i < tokens.Length; ++i)
+                        if (arg_elem.HasAttribute("data"))
+                            arg.Data = arg_elem.GetAttribute("data");
+                        XmlNodeList val_nodes = arg_elem.GetElementsByTagName("value");
+                        foreach(var val_node in val_nodes)
                         {
-                            string[] record_tokens = tokens[i].Split(unit_code);
-                            if (record_tokens.Length < 2)
-                                continue;
-                            AdminRecord record = new AdminRecord();
-                            record.Cmd = record_tokens[0];
-                            for (int j = 1; j < record_tokens.Length; ++j)
-                            {
-                                record.Args.Add(record_tokens[j]);
-                            }
-                            record_list.Add(record);
+                            arg.AddItem((val_node as XmlElement).InnerText);
                         }
-                        Records[key] = record_list;
                     }
                 }
-                reader.Close();
             }
             catch(Exception e)
             {
@@ -495,84 +506,55 @@ namespace AdminTool
         private void SaveUserData()
         {
             // 保存历史数据
-            try
-            {
-                FileStream stream = new FileStream(sUserDataPath, FileMode.OpenOrCreate);
-                StreamWriter writer = new StreamWriter(stream, Encoding.Default);
-                foreach (var kv in Records)
-                {
-                    if (kv.Value.Count == 0)
-                        continue;
-                    List<AdminRecord> record_list = kv.Value;
-                    writer.Write("record");
-                    writer.Write(record_code);
-                    writer.Write(kv.Key);
-                    for (int i = 0; i < record_list.Count; ++i)
-                    {
-                        writer.Write(record_code);
-                        AdminRecord record = record_list[i];
-                        writer.Write(record.Cmd);
-                        // 写入args
-                        for (int j = 0; j < record.Args.Count; ++j)
-                        {
-                            writer.Write(unit_code);
-                            writer.Write(record.Args[j]);
-                        }
-                    }
-                    // 换行
-                    writer.WriteLine();
-                }
-                writer.Flush();
-                writer.Close();
-            }
-            catch(Exception e)
-            {
-                WriteLog(e.Message);
-            }
-        }
-
-        private void LoadUIDData()
-        {
-            if (!File.Exists(sUIDsDataPath))
+            if (!m_dirty)
                 return;
             try
             {
-                StreamReader reader = new StreamReader(sUIDsDataPath, Encoding.Default);
-                while (!reader.EndOfStream)
+                XmlDocument doc = new XmlDocument();
+                XmlElement root = doc.CreateElement("root");
+                doc.AppendChild(root);
+                // 写入lastuid
+                if(!string.IsNullOrEmpty(LastUID))
                 {
-                    string str = reader.ReadLine();
-                    string[] tokens = str.Split(',');
-                    if (tokens.Length == 0)
+                    XmlElement last_uid_elem = doc.CreateElement("last_uid");
+                    root.AppendChild(last_uid_elem);
+                    last_uid_elem.InnerText = LastUID;
+                }
+
+                foreach(var uid in Config.UIds)
+                {
+                    XmlElement elem = doc.CreateElement("uid");
+                    elem.InnerText = uid;
+                    root.AppendChild(elem);
+                }
+                // 写入cmd
+                foreach(var cmd in Config.Cmds)
+                {
+                    if (!cmd.NeedRecord())
                         continue;
-                    LastUID = tokens[0];
-                    for(int i = 1; i < tokens.Length; ++i)
+                    XmlElement elem_cmd = doc.CreateElement("cmd");
+                    elem_cmd.SetAttribute("name", cmd.Cmd);
+                    root.AppendChild(elem_cmd);
+                    foreach(var arg in cmd.Args)
                     {
-                        UIds.Add(tokens[i]);
+                        if (!arg.CanEdit)
+                            continue;
+                        XmlElement elem_arg = doc.CreateElement("arg");
+                        elem_cmd.AppendChild(elem_arg);
+                        elem_arg.SetAttribute("name", arg.Name);
+                        if (!string.IsNullOrEmpty(arg.Data))
+                        {
+                            elem_arg.SetAttribute("data", arg.Data);
+                        }
+                        foreach(var val in arg.Items)
+                        {
+                            XmlElement elem_val = doc.CreateElement("value");
+                            elem_arg.AppendChild(elem_val);
+                            elem_val.InnerText = val;
+                        }
                     }
                 }
-                reader.Close();
-            }
-            catch(Exception e)
-            {
-                WriteLog(e.Message);
-            }
-        }
-
-        private void SaveUIDData()
-        {
-            try
-            {
-                FileStream stream = new FileStream(sUIDsDataPath, FileMode.OpenOrCreate);
-                StreamWriter writer = new StreamWriter(stream, Encoding.Default);
-                writer.Write(LastUID);
-                // 先写入最近
-                foreach(var uid in UIds)
-                {
-                    writer.Write(",");
-                    writer.Write(uid);
-                }
-                writer.Flush();
-                writer.Close();
+                doc.Save(sUserDataPath);
             }
             catch(Exception e)
             {
@@ -593,107 +575,61 @@ namespace AdminTool
 
         public bool UpdateUID(string uid)
         {
-            LastUID = uid;
-            // 记录uid
-            if (!UIds.Contains(uid))
+            if(LastUID != uid)
             {
-                UIds.Add(uid);
+                LastUID = uid;
+                m_dirty = true;
+            }
+            if(Config.AddUID(uid))
+            {
+                m_dirty = true;
                 return true;
             }
-            return false;
-        }
-
-        public List<AdminRecord> FindRecord(string cmd)
-        {
-            List<AdminRecord> record_list;
-            if (Records.TryGetValue(cmd, out record_list))
-                return record_list;
-            return null;
-        }
-
-        public void ClearRecord(string cmd)
-        {
-            Records.Remove(cmd);
-        }
-
-        public void DeleteRecord(string cmd, int index)
-        {
-            List<AdminRecord> records;
-            if (!Records.TryGetValue(cmd, out records))
-                return;
-            if (index >= records.Count)
-                return;
-            records.RemoveAt(index);
-        }
-
-        public void UpdateRecord(string cmd)
-        {
-            List<AdminRecord> records;
-            if (!Records.TryGetValue(cmd, out records))
-                return;
-            records.Sort();
-            if(records.Count > Config.RecordMax)
-            {
-                records.RemoveRange(Config.RecordMax, records.Count - Config.RecordMax);
-            }
-        }
-
-        public bool AddRecord(string cmd, AdminRecord record)
-        {
-            // 记录record
-            record.Count = 1;
-            record.Time = TimeNow();
-            bool need_find = true;
-            List<AdminRecord> record_list;
-            if(!Records.TryGetValue(cmd, out record_list))
-            {
-                record_list = new List<AdminRecord>();
-                Records[cmd] = record_list;
-                need_find = false;
-            }
-            if(need_find)
-            {
-                // 查找是否已经存在
-                for (int i = 0; i < record_list.Count; ++i)
-                {
-                    AdminRecord node = record_list[i];
-                    if (node.Cmd == record.Cmd)
-                    {
-                        node.Count++;
-                        node.Time = record.Time;
-                        return true;
-                    }
-                }
-            }
-            // 没有找到,添加
-            record_list.Add(record);
             return false;
         }
 
         public bool Connect()
         {
             string host = m_form.Host;
-            int port = m_form.Port;
+            if (string.IsNullOrEmpty(host))
+                return false;
             if(m_socket.Connected)
             {// 校验是否发生改变
-                if (host == m_host && port == m_port)
+                if (host == m_host)
                     return true;
-                WriteLog(string.Format("Disconnect {0}:{1}", m_host, m_port));
+                WriteLog(string.Format("Disconnect {0}", m_host));
                 m_socket.Disconnect(true);
             }
             m_host = host;
-            m_port = port;
             // 尝试连接
             try
             {
-                //m_socket.BeginConnect(host, port, OnConnect, null);
-                m_socket.BeginConnect(m_host, m_port,
+                // 解析
+                string ip;
+                int port;
+
+                int pos = host.IndexOf('(');
+                if (pos != -1)
+                    host = host.Substring(0, pos);
+                pos = host.IndexOf(':');
+                if(pos != -1)
+                {
+                    ip = host.Substring(0, pos);
+                    port = Int32.Parse(host.Substring(pos + 1));
+                }
+                else
+                {
+                    ip = host;
+                    port = 2020;
+                }
+
+                m_socket.BeginConnect(ip, port,
                     (ar) =>
                     {
                         try
                         {
                             m_socket.EndConnect(ar);
-                            WriteLog(string.Format("Connect {0}:{1} succeed;", m_host, m_port));
+                            WriteLog(string.Format("Connect {0} succeed;", m_host));
                             Recv();
                         }
                         catch(Exception e)
@@ -780,7 +716,6 @@ namespace AdminTool
                         try
                         {
                             m_socket.EndSend(ar);
-                            //int len = m_socket.EndSend(ar);
                             //WriteLog(string.Format("send bytes len = {0}", len));
                         }
                         catch(Exception e)
