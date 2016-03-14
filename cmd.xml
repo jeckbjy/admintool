@@ -1,0 +1,38 @@
+<root>
+	<uid>u72620561171318476</uid>
+	<uid>u72620561171318477</uid>
+	<host>192.168.2.169:2020(内网)</host>
+	<host>119.29.153.33:2020(外网)</host>
+	
+	<cmd group="玩家" name="添加货币" value="addmoney,type,count">
+		<arg name="type" show="货币类型" style="option" options="金币:1|钻石:2|万能图纸:3|高级万能图纸:4|原油:5|合金:6|军团贡献:7|竞技徽章:8|声望:9|科技点:10|能量:11"/>
+		<arg name="count" show="数量" style="text"/>
+	</cmd>
+	<cmd group="玩家" name="添加物品" value="additem, itemid, num" note="取item表中的物品id，填写数量"/>
+	<cmd group="玩家" name="删除物品" value = "delitem, itemid, num" note="取item表中的物品id，填写数量"/>
+	<cmd group="玩家" name="添加月卡" value = "addmonthcard, monthcardid" note="7为普通月卡，8为至尊月卡"/>
+	
+	<cmd group="玩家" name="添加玩家经验" value = "addexp, exp"/>
+	<cmd group="玩家" name="设置玩家等级" value = "setlevel,level"/>
+	<cmd group="玩家" name="添加vip经验" value = "addvipexp,exp"/>
+	<cmd group="玩家" name="设置vip等级" value = "setviplevel,level"/>
+	
+	<cmd group="玩家" name="跳过新手引导" value = "skipguide"/>
+	<cmd group="玩家" name="重置账号" value = "resetaccount"/>
+	
+	<cmd group="战舰" name="添加战舰" value = "addtank, shipid,num" 		note="取ship表中的舰船id，填写数量"/>
+	<cmd group="战舰" name="删除战舰" value = "delship, shipid" 			note="取ship表中的舰船id，填写数量"/>
+	<cmd group="战舰" name="设置战舰等级" value = "setshiplv,shipid,level" note="取ship表中的舰船id，填写数量"/>
+	
+	<cmd group="图纸" name="添加图纸" value = "addpaper,paperid,num" 			note="取paper表中的图纸id，填写数量"/>
+	<cmd group="图纸" name="添加图纸碎片" value = "addpaperpiece, paperid,num " note="取paperpiece表中的碎片id，填写数量"/>
+	
+	<cmd group="配件" name="添加配件" value = "addparts,partsid,num" 		note="取parts表中的配件id，填写数量"/>
+	<cmd group="配件" name="删除配件" value = "delparts,partsid" 			note="取parts表中的配件id，填写数量"/>
+	<cmd group="配件" name="设置配件等级" value = "setpartslv,partsid,lv" 	note="取parts表中的配件id，填写数量"/>
+	
+	<cmd group="副本" name="设置副本胜利" value = "winstage,stageid" 	note="取stage表中的关卡id"/>
+	<cmd group="副本" name="设置副本失败" value = "losestage,stageid" 	note="取stage表中的关卡id"/>
+	<cmd group="副本" name="重置副本次数" value = "resetstagecount,stageid" note="取stage表中的关卡id"/>
+	<cmd group="副本" name="解锁至副本" value = "openstage,stageid" note="取stage表中的关卡id"/>
+</root>
