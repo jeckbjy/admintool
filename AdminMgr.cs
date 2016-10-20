@@ -20,6 +20,22 @@ namespace AdminTool
         }
     }
 
+    internal class AdminOptionList
+    {
+        public string Name = "";
+        public List<AdminOption> Options = new List<AdminOption>();
+
+        public AdminOption FindOptionByData(string data)
+        {
+            foreach (var option in Options)
+            {
+                if (option.Data == data)
+                    return option;
+            }
+            return null;
+        }
+    }
+
     enum BoxStyle
     {
         Text,       // 纯文本
@@ -38,18 +54,27 @@ namespace AdminTool
         public string Show;     // 显示名字
         public string Data;     // 编辑的数据
         public BoxStyle Style = BoxStyle.Combox;
-        public List<AdminOption> Options = new List<AdminOption>();
+        public AdminOptionList OptionList;
         // 常用备选项
         public List<string> Items = new List<string>();
 
+        public List<AdminOption> Options
+        {
+            get
+            {
+                if (OptionList == null)
+                    return null;
+
+                return OptionList.Options;
+            }
+        }
+
         public AdminOption FindOptionByData(string data)
         {
-            foreach(var option in Options)
-            {
-                if (option.Data == data)
-                    return option;
-            }
-            return null;
+            if (OptionList == null)
+                return null;
+
+            return OptionList.FindOptionByData(data);
         }
 
         public bool AddItem(string item)
@@ -187,6 +212,7 @@ namespace AdminTool
         public List<AdminCmd> Cmds = new List<AdminCmd>();
         public List<string> UIds = new List<string>();
         public List<string> Hosts = new List<string>();
+        public Dictionary<string, AdminOptionList> OptionMap = new Dictionary<string, AdminOptionList>();
 
         public bool AddUID(string uid)
         {
@@ -238,6 +264,16 @@ namespace AdminTool
                 Hosts.Add(host);
             }
 
+            // options
+            OptionMap.Clear();
+            nodes = root.GetElementsByTagName("options");
+            foreach(var node in nodes)
+            {
+                elem = node as XmlElement;
+                ReadOption(elem);
+            }
+
+            // cmds
             Cmds.Clear();
             nodes = root.GetElementsByTagName("cmd");
             foreach(var node in nodes)
@@ -263,6 +299,158 @@ namespace AdminTool
             }
         }
 
+        private void ReadOption(XmlElement node)
+        {
+            AdminOptionList optionList = new AdminOptionList();
+            optionList.Name = node.GetAttribute("name");
+
+            // 简易书写，通过格式
+            string options = node.GetAttribute("value");
+            if(!string.IsNullOrEmpty(options))
+            {
+                ParseOption(optionList.Options, options);
+            }
+
+            XmlNodeList param_nodes = node.GetElementsByTagName("option");
+            foreach(var param in param_nodes)
+            {
+                XmlElement elem = (XmlElement)param;
+                AdminOption option = new AdminOption();
+                if (elem.HasAttribute("data"))
+                {// 两种方式解析
+                    string data = elem.GetAttribute("data");
+                    string[] tokens = data.Split(':');
+                    if (tokens.Length != 2)
+                        throw new Exception("bad option format!!");
+
+                    option.Name = tokens[0].Trim();
+                    option.Data = tokens[1].Trim();
+                }
+                else
+                {
+                    option.Name = elem.GetAttribute("key").Trim();
+                    option.Data = elem.GetAttribute("value").Trim();
+                }
+
+                optionList.Options.Add(option);
+            }
+
+            OptionMap.Add(optionList.Name, optionList);
+        }
+
+        private void FindOption(AdminArg arg, string data)
+        {
+            arg.Style = BoxStyle.Option;
+
+            if (data.StartsWith("@"))
+            {
+                string opt_name = data.Substring(1);
+                arg.OptionList = OptionMap[opt_name];
+            }
+            else
+            {
+                arg.OptionList = new AdminOptionList();
+                ParseOption(arg.Options, data);
+            }
+        }
+
+        private void ParseOption(List<AdminOption> options, string data)
+        {
+            string[] tokens = data.Split(new char[] { '|', ',' });
+            foreach (var option in tokens)
+            {
+                int pos = option.IndexOf(':');
+                if (pos == -1)
+                    continue;
+                AdminOption op = new AdminOption();
+                op.Name = option.Substring(0, pos).Trim();
+                op.Data = option.Substring(pos + 1).Trim();
+                options.Add(op);
+            }
+        }
+
+        private bool ParseArg(AdminArg arg, string data)
+        {
+            // format:($)name:(show)(=default)[(options=a:1|b:2);(base64=1)]
+            string name;
+            string show = null;
+            string info;
+            int index_beg = data.IndexOf('[');
+            if(index_beg != -1)
+            {
+                int index_end = data.IndexOf(']');
+                if (index_end == -1)
+                    return false;
+                name = data.Substring(0, index_beg);
+                info = data.Substring(index_beg + 1, index_end - index_beg - 1);
+            }
+            else
+            {
+                name = data;
+                info = null;
+            }
+
+            // check show
+            int index_show = name.IndexOf(':');
+            if(index_show != -1)
+            {
+                show = name.Substring(index_show + 1);
+                name = name.Substring(0, index_show);
+            }
+
+            if(name[0] == '$')
+            {// 可编辑变量
+                arg.CanEdit = true;
+                arg.Name = name.Substring(1);
+                arg.Show = arg.Name;
+            }
+            else
+            {// 不能编辑常量
+                arg.CanEdit = false;
+                arg.Name = name;
+                arg.Show = arg.Name;
+                arg.Data = arg.Name;
+            }
+
+            if(!string.IsNullOrEmpty(show))
+            {
+                arg.Show = show;
+            }
+
+            // check info
+            if(!string.IsNullOrEmpty(info))
+            {
+                string[] tokens = info.Split(';');
+                if(tokens.Length != 0)
+                {
+                    foreach(string token in tokens)
+                    {
+                        int index = token.IndexOf('=');
+                        if (index == -1)
+                            continue;
+                        string key = token.Substring(0, index).Trim();
+                        string value = token.Substring(index + 1);
+                        switch(key)
+                        {
+                            case "options":
+                                {
+                                    FindOption(arg, value);
+                                }
+                                break;
+                            case "base64":
+                                {
+                                    int isBase64 = int.Parse(value);
+                                    arg.Base64 = (isBase64 != 0);
+                                }
+                                break;
+                        }
+                    }
+                }
+            }
+
+            return true;
+        }
+
         private void ReadCmd(XmlElement node)
         {
             string[] tokens;
@@ -270,26 +458,18 @@ namespace AdminTool
             Cmds.Add(cmd);
             cmd.Group = node.GetAttribute("group");
             cmd.Name = node.GetAttribute("name");
-            //cmd.Cmd = node.GetAttribute("value");
             cmd.Desc = ReadAttribute(node, "note", "");
             string value = node.GetAttribute("value");
             tokens = value.Split(new char[] { ',' });
             cmd.Cmd = tokens[0];
-            int tmp;
             for(int i = 1; i < tokens.Length; ++i)
             {
                 AdminArg arg = new AdminArg();
-                arg.Name = tokens[i].Trim();
-                arg.Show = arg.Name;
-                if (int.TryParse(arg.Name, out tmp))
-                {
-                    arg.CanEdit = false;
-                    arg.Data = arg.Name;
-                }
-                else
-                {
-                    arg.CanEdit = true;
-                }
+                string data = tokens[i].Trim();
+                if (string.IsNullOrEmpty(data))
+                    continue;
+
+                ParseArg(arg, data);
                 cmd.Args.Add(arg);
             }
 
@@ -315,18 +495,8 @@ namespace AdminTool
 
                 if(elem.HasAttribute("options"))
                 {
-                    arg.Style = BoxStyle.Option;
-                    tokens = elem.GetAttribute("options").Split(new char[]{'|', ','});
-                    foreach(var option in tokens)
-                    {
-                        int pos = option.IndexOf(':');
-                        if(pos == -1)
-                            continue;
-                        AdminOption op = new AdminOption();
-                        op.Name = option.Substring(0, pos).Trim();
-                        op.Data = option.Substring(pos + 1).Trim();
-                        arg.Options.Add(op);
-                    }
+                    string options = elem.GetAttribute("options");
+                    FindOption(arg, options);
                 }
 
                 if(elem.HasAttribute("items"))

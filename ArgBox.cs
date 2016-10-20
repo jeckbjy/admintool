@@ -135,7 +135,7 @@ namespace AdminTool
                 case BoxStyle.Option:
                     {
                         this.Style = ComboBoxStyle.DropDownList;
-                        if(arg.Options.Count > 0)
+                        if(arg.Options != null && arg.Options.Count > 0)
                         {
                             foreach (var option in arg.Options)
                             {
