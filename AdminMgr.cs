@@ -119,7 +119,7 @@ namespace AdminTool
             builder.Append(Cmd);
             builder.Append(",");
             builder.Append(Uid);
-            for (int i = 1; i < Args.Count; ++i )
+            for (int i = 0; i < Args.Count; ++i )
             {
                 AdminArg arg = Args[i];
                 builder.Append(",");
@@ -388,6 +388,14 @@ namespace AdminTool
             {
                 name = data;
                 info = null;
+            }
+
+            // check default
+            int index_def = name.IndexOf('=');
+            if(index_def != -1)
+            {
+                arg.Data = name.Substring(index_def + 1);
+                name = name.Substring(0, index_def);
             }
 
             // check show

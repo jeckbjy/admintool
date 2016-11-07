@@ -145,16 +145,10 @@ namespace AdminTool
 
         private void procBtn_Click(object sender, EventArgs e)
         {
-            // 执行
-            TreeNode node = adminTreeView.SelectedNode;
-            if (node == null)
+            AdminCmd cmd = GetCmd();
+            if (cmd == null)
                 return;
-            AdminCmd cmd = (AdminCmd)node.Tag;
-            if(cmd == null)
-            {
-                WriteLog("请先选中一条指令");
-                return;
-            }
+
             // set uid
             if (string.IsNullOrEmpty(uidCbx.Text))
             {
@@ -170,8 +164,58 @@ namespace AdminTool
             if (m_mgr.UpdateUID(uid))
                 UpdateUID();
 
+            // 发送gm
+            string msg = cmd.Concat();
+            m_mgr.Execute(msg, (int)countNum.Value);
+        }
+
+        // 批量执行
+        private void batchBtn_Click(object sender, EventArgs e)
+        {
+            AdminCmd cmd = GetCmd();
+            if (cmd == null)
+                return;
+
+            string uidstr = uidListRTB.Text;
+            if(string.IsNullOrEmpty(uidstr))
+            {
+                WriteLog("uid不能为空");
+                return;
+            }
+
+            string[] uids = uidstr.Split(new char[] { '\n', ',', '|' }, StringSplitOptions.RemoveEmptyEntries);
+            if(uids.Length == 0)
+            {
+                WriteLog("uid不能为空");
+                return;
+            }
+
+            for(int i = 0; i < uids.Length; ++i)
+            {
+                string uid = uids[i];
+                if(char.IsDigit(uid[0]))
+                    uid = "u"+uid;
+                cmd.Uid = uid;
+                string msg = cmd.Concat();
+                m_mgr.Execute(msg, 1);
+            }
+        }
+
+        private AdminCmd GetCmd()
+        {
+            // 执行
+            TreeNode node = adminTreeView.SelectedNode;
+            if (node == null)
+                return null;
+            AdminCmd cmd = (AdminCmd)node.Tag;
+            if (cmd == null)
+            {
+                WriteLog("请先选中一条指令");
+                return null;
+            }
+
             // 回填数据
-            for(int i = 0; i < argsPanel.Controls.Count; ++i)
+            for (int i = 0; i < argsPanel.Controls.Count; ++i)
             {
                 ArgBox box = (ArgBox)argsPanel.Controls[i];
                 AdminArg arg = (AdminArg)box.Tag;
@@ -182,9 +226,7 @@ namespace AdminTool
                 }
             }
 
-            // 发送gm
-            string msg = cmd.Concat();
-            m_mgr.Execute(msg, (int)countNum.Value);
+            return cmd;
         }
 
         private void adminTreeView_AfterSelect(object sender, TreeViewEventArgs e)
@@ -243,5 +285,6 @@ namespace AdminTool
             m_mgr.LoadConfig();
             InitForm();
         }
+
     }
 }

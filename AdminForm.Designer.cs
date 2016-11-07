@@ -56,6 +56,9 @@
             this.widgetTip = new System.Windows.Forms.ToolTip(this.components);
             this.statusBar = new System.Windows.Forms.StatusStrip();
             this.statusLabel = new System.Windows.Forms.ToolStripStatusLabel();
+            this.uidListRTB = new System.Windows.Forms.RichTextBox();
+            this.label1 = new System.Windows.Forms.Label();
+            this.batchBtn = new System.Windows.Forms.Button();
             this.menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
@@ -78,7 +81,7 @@
             this.fileFToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Size = new System.Drawing.Size(723, 25);
+            this.menuStrip1.Size = new System.Drawing.Size(739, 25);
             this.menuStrip1.TabIndex = 0;
             this.menuStrip1.Text = "menuStrip1";
             // 
@@ -110,8 +113,8 @@
             // splitContainer1.Panel2
             // 
             this.splitContainer1.Panel2.Controls.Add(this.splitContainer2);
-            this.splitContainer1.Size = new System.Drawing.Size(723, 538);
-            this.splitContainer1.SplitterDistance = 240;
+            this.splitContainer1.Size = new System.Drawing.Size(739, 646);
+            this.splitContainer1.SplitterDistance = 245;
             this.splitContainer1.SplitterWidth = 6;
             this.splitContainer1.TabIndex = 0;
             this.splitContainer1.TabStop = false;
@@ -123,7 +126,7 @@
             this.adminTreeView.HideSelection = false;
             this.adminTreeView.Location = new System.Drawing.Point(0, 0);
             this.adminTreeView.Name = "adminTreeView";
-            this.adminTreeView.Size = new System.Drawing.Size(240, 538);
+            this.adminTreeView.Size = new System.Drawing.Size(245, 646);
             this.adminTreeView.TabIndex = 1;
             this.adminTreeView.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.adminTreeView_AfterSelect);
             // 
@@ -164,8 +167,8 @@
             // splitContainer2.Panel2
             // 
             this.splitContainer2.Panel2.Controls.Add(this.logRtb);
-            this.splitContainer2.Size = new System.Drawing.Size(477, 538);
-            this.splitContainer2.SplitterDistance = 359;
+            this.splitContainer2.Size = new System.Drawing.Size(488, 646);
+            this.splitContainer2.SplitterDistance = 431;
             this.splitContainer2.SplitterWidth = 6;
             this.splitContainer2.TabIndex = 0;
             this.splitContainer2.TabStop = false;
@@ -174,9 +177,9 @@
             // 
             this.argsBox.Controls.Add(this.argsPanel);
             this.argsBox.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.argsBox.Location = new System.Drawing.Point(0, 113);
+            this.argsBox.Location = new System.Drawing.Point(0, 216);
             this.argsBox.Name = "argsBox";
-            this.argsBox.Size = new System.Drawing.Size(477, 246);
+            this.argsBox.Size = new System.Drawing.Size(488, 215);
             this.argsBox.TabIndex = 11;
             this.argsBox.TabStop = false;
             this.argsBox.Text = "参数";
@@ -186,11 +189,14 @@
             this.argsPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.argsPanel.Location = new System.Drawing.Point(3, 17);
             this.argsPanel.Name = "argsPanel";
-            this.argsPanel.Size = new System.Drawing.Size(471, 226);
+            this.argsPanel.Size = new System.Drawing.Size(482, 195);
             this.argsPanel.TabIndex = 0;
             // 
             // cmdGroupBox
             // 
+            this.cmdGroupBox.Controls.Add(this.batchBtn);
+            this.cmdGroupBox.Controls.Add(this.label1);
+            this.cmdGroupBox.Controls.Add(this.uidListRTB);
             this.cmdGroupBox.Controls.Add(this.hostCbx);
             this.cmdGroupBox.Controls.Add(this.sendBtn);
             this.cmdGroupBox.Controls.Add(this.cmdTbx);
@@ -205,7 +211,7 @@
             this.cmdGroupBox.Dock = System.Windows.Forms.DockStyle.Top;
             this.cmdGroupBox.Location = new System.Drawing.Point(0, 0);
             this.cmdGroupBox.Name = "cmdGroupBox";
-            this.cmdGroupBox.Size = new System.Drawing.Size(477, 113);
+            this.cmdGroupBox.Size = new System.Drawing.Size(488, 216);
             this.cmdGroupBox.TabIndex = 0;
             this.cmdGroupBox.TabStop = false;
             this.cmdGroupBox.Text = "命令";
@@ -324,7 +330,7 @@
             this.logRtb.Location = new System.Drawing.Point(0, 0);
             this.logRtb.Name = "logRtb";
             this.logRtb.ReadOnly = true;
-            this.logRtb.Size = new System.Drawing.Size(477, 173);
+            this.logRtb.Size = new System.Drawing.Size(488, 209);
             this.logRtb.TabIndex = 0;
             this.logRtb.TabStop = false;
             this.logRtb.Text = "";
@@ -333,9 +339,9 @@
             // 
             this.statusBar.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.statusLabel});
-            this.statusBar.Location = new System.Drawing.Point(0, 563);
+            this.statusBar.Location = new System.Drawing.Point(0, 671);
             this.statusBar.Name = "statusBar";
-            this.statusBar.Size = new System.Drawing.Size(723, 22);
+            this.statusBar.Size = new System.Drawing.Size(739, 22);
             this.statusBar.TabIndex = 1;
             this.statusBar.Text = "statusStrip1";
             // 
@@ -344,11 +350,38 @@
             this.statusLabel.Name = "statusLabel";
             this.statusLabel.Size = new System.Drawing.Size(0, 17);
             // 
+            // uidListRTB
+            // 
+            this.uidListRTB.Location = new System.Drawing.Point(45, 117);
+            this.uidListRTB.Name = "uidListRTB";
+            this.uidListRTB.Size = new System.Drawing.Size(333, 93);
+            this.uidListRTB.TabIndex = 115;
+            this.uidListRTB.Text = "";
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(10, 148);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(29, 12);
+            this.label1.TabIndex = 116;
+            this.label1.Text = "uids";
+            // 
+            // batchBtn
+            // 
+            this.batchBtn.Location = new System.Drawing.Point(389, 148);
+            this.batchBtn.Name = "batchBtn";
+            this.batchBtn.Size = new System.Drawing.Size(75, 23);
+            this.batchBtn.TabIndex = 117;
+            this.batchBtn.Text = "批量执行";
+            this.batchBtn.UseVisualStyleBackColor = true;
+            this.batchBtn.Click += new System.EventHandler(this.batchBtn_Click);
+            // 
             // AdminForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(723, 585);
+            this.ClientSize = new System.Drawing.Size(739, 693);
             this.Controls.Add(this.splitContainer1);
             this.Controls.Add(this.statusBar);
             this.Controls.Add(this.menuStrip1);
@@ -407,6 +440,9 @@
         private System.Windows.Forms.ContextMenuStrip treeMenuStrip;
         private System.Windows.Forms.ToolStripMenuItem expandMenu;
         private System.Windows.Forms.ToolStripMenuItem collapseMenu;
+        private System.Windows.Forms.Button batchBtn;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.RichTextBox uidListRTB;
     }
 }
 
