@@ -218,6 +218,8 @@ namespace AdminTool
             for (int i = 0; i < argsPanel.Controls.Count; ++i)
             {
                 ArgBox box = (ArgBox)argsPanel.Controls[i];
+                if (!box.Visible)
+                    break;
                 AdminArg arg = (AdminArg)box.Tag;
                 arg.Data = box.ArgData;
                 if (arg.AddItem(arg.Data))
